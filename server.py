@@ -6,6 +6,8 @@ from utils import log
 from routes import route_static
 from routes import route_dict
 
+import _thread
+
 
 # 定义一个 class 用于保存请求的数据
 class Request(object):
@@ -85,30 +87,34 @@ def run(host='', port=3000):
         s.listen()
         while True:
             connection, address = s.accept()
-            r = connection.recv(1024)
-            r = r.decode()
-            log('ip 和 request, {}\n{}'.format(address, r))
-            # 因为 chrome 会发送空请求导致 split 得到空 list
-            # 所以这里判断一下防止程序崩溃
-            if len(r) > 0:
-                # 只能 split 一次，因为 body 中可能有换行
-                # 把 body 放入 request 中
-                request = Request()
-                header, request.body = r.split('\r\n\r\n', 1)
-                h = header.split('\r\n')
-                parts = h[0].split()
-                path = parts[1]
-                # 设置 request 的 method
-                request.method = parts[0]
-                # 用 response_for_path 函数来得到 path 对应的响应内容
-                response = response_for_path(path, request)
-                # 把响应发送给客户端
-                connection.sendall(response)
-            else:
-                log('接收到了一个空请求')
+            _thread.start_new_thread(process_request,(address,connection))
 
-            # 处理完请求, 关闭连接
-            connection.close()
+
+def process_request(address,connection):
+    r = connection.recv(1024)
+    r = r.decode()
+    log('ip 和 request, {}\n{}'.format(address, r))
+    # 因为 chrome 会发送空请求导致 split 得到空 list
+    # 所以这里判断一下防止程序崩溃
+    if len(r) > 0:
+        # 只能 split 一次，因为 body 中可能有换行
+        # 把 body 放入 request 中
+        request = Request()
+        header, request.body = r.split('\r\n\r\n', 1)
+        h = header.split('\r\n')
+        parts = h[0].split()
+        path = parts[1]
+        # 设置 request 的 method
+        request.method = parts[0]
+        # 用 response_for_path 函数来得到 path 对应的响应内容
+        response = response_for_path(path, request)
+        # 把响应发送给客户端
+        connection.sendall(response)
+    else:
+        log('接收到了一个空请求')
+
+    # 处理完请求, 关闭连接
+    connection.close()
 
 
 if __name__ == '__main__':
