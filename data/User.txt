@@ -1,0 +1,6 @@
+[
+  {
+    "username": "blink",
+    "password": "123"
+  }
+]
