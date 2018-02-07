@@ -1,112 +1,120 @@
 import socket
+import urllib.parse
+
+from utils import log
+
+from routes import route_static
+from routes import route_dict
 
 
-def log(*args, **kwargs):
-    # 用log函数代替print
-    print('log', *args, **kwargs)
+# 定义一个 class 用于保存请求的数据
+class Request(object):
+    def __init__(self):
+        self.method = 'GET'
+        self.path = ''
+        self.query = {}
+        self.body = ''
 
-
-def route_index():
-    """
-    主页的处理函数, 返回主页的响应
-    """
-    header = 'HTTP/1.1 233 OK\r\nContent-Type: text/html\r\n'
-    body = '<h1>Hello World</h1><img src="doge.gif"/>'
-    r = '{}\r\n{}'.format(header, body)
-    return r.encode()
-
-
-def html_content(path):
-    with open(path, encoding='utf-8') as f:
-        return f.read()
-
-
-def route_message():
-    """
-    主页的处理函数, 返回主页的响应
-    """
-    header = 'HTTP/1.1 233 OK\r\nContent-Type: text/html\r\n'
-    body = html_content('html_basic.html')
-    r = '{}\r\n{}'.format(header, body)
-    return r.encode()
-
-
-def route_image():
-    """
-    图片的处理函数, 读取图片并生成响应返回
-    """
-    with open('funny.gif', 'rb') as f:
-        header = b'HTTP/1.1 200 OK\r\nContent-Type: image/gif\r\n\r\n'
-        image = header + f.read()
-        return image
+    def form(self):
+        body = urllib.parse.unquote(self.body)
+        log('form', self.body)
+        log('form', body)
+        args = body.split('&')
+        f = {}
+        for arg in args:
+            k, v = arg.split('=')
+            f[k] = v
+        log('form() 字典', f)
+        return f
 
 
 def error(code=404):
     """
     根据 code 返回不同的错误响应
-    目前只有 404
     """
     e = {
-        404: b'HTTP/1.1 404 NOT FOUND\r\nContent-Type: text/html\r\n\r\n<h1>NOT FOUND</h1>',
+        404: b'HTTP/1.1 404 NOT FOUND\r\n\r\n<h1>NOT FOUND</h1>',
     }
     return e.get(code, b'')
 
 
-def response_for_path(path):
+def parsed_path(path):
+    index = path.find('?')
+    if index == -1:
+        return path, {}
+    else:
+        path, query_string = path.split('?', 1)
+        args = query_string.split('&')
+        query = {}
+        for arg in args:
+            k, v = arg.split('=')
+            query[k] = v
+        return path, query
+
+
+def response_for_path(path,request):
+    path, query = parsed_path(path)
+    request.path = path
+    request.query = query
+    log('path 和 query', path, query)
     """
     根据 path 调用相应的处理函数
     没有处理的 path 会返回 404
     """
     r = {
-        '/': route_index,
-        '/message': route_message,
-        '/doge.gif': route_image,
+        '/static': route_static,
+        # '/': route_index,
+        # '/login': route_login,
+        # '/messages': route_message,
     }
+    r.update(route_dict)
     response = r.get(path, error)
-    return response()
+    return response(request)
 
 
-def run(host, port):
-    # 启动服务器
+def run(host='', port=3000):
+    """
+    启动服务器
+    """
     # 使用 with 可以保证程序中断的时候正确关闭 socket 释放占用的端口
+    log('开始运行于', '{}:{}'.format(host, port))
     with socket.socket() as s:
-
         s.bind((host, port))
-        # 服务器绑定接口
+        # 无限循环来处理请求
+        # 监听 接受 读取请求数据 解码成字符串
         s.listen()
-        # 允许套接字进行连接
         while True:
             connection, address = s.accept()
-            # 等待连接 字节字符串
-            request = b''
-            buffer_size = 1024
-            while True:
-                r = connection.recv(buffer_size)
-                request += r
-                if len(r) < buffer_size:
-                    break
-
-            request = request.decode()
-            log('ip and request, {}\n{}'.format(address, request))
+            r = connection.recv(1024)
+            r = r.decode()
+            log('ip 和 request, {}\n{}'.format(address, r))
             # 因为 chrome 会发送空请求导致 split 得到空 list
-            # 所以这里先判断一下 split 得到的数据的长度
-            parts = request.split()
-            log('parts',parts)
-
-            if len(parts) > 0:
+            # 所以这里判断一下防止程序崩溃
+            if len(r) > 0:
+                # 只能 split 一次，因为 body 中可能有换行
+                # 把 body 放入 request 中
+                request = Request()
+                header, request.body = r.split('\r\n\r\n', 1)
+                h = header.split('\r\n')
+                parts = h[0].split()
                 path = parts[1]
-                response = response_for_path(path)
-                # response = b'HTTP/1.1 233 VERY OK\r\nContent-Type:text/html\r\n\r\n<h1>Hello World!</h1>'
-
+                # 设置 request 的 method
+                request.method = parts[0]
+                # 用 response_for_path 函数来得到 path 对应的响应内容
+                response = response_for_path(path, request)
+                # 把响应发送给客户端
                 connection.sendall(response)
             else:
-                log("接收到了一个空请求")
+                log('接收到了一个空请求')
+
+            # 处理完请求, 关闭连接
             connection.close()
 
 
 if __name__ == '__main__':
+    # 生成配置并且运行程序
     config = dict(
-        host='0.0.0.0',
+        host='127.0.0.1',
         port=3000,
     )
     run(**config)
