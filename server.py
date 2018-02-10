@@ -16,6 +16,27 @@ class Request(object):
         self.path = ''
         self.query = {}
         self.body = ''
+        self.headers = {}
+        self.cookies = {}
+        self.raw_data = ''
+
+    def add_cookies(self):
+        cookies = self.headers.get('Cookie', '')
+        kvs = cookies.split('; ')
+        log('cookie', kvs)
+        for kv in kvs:
+            if '=' in kv:
+                k, v = kv.split('=')
+                self.cookies[k] = v
+
+    def add_headers(self, header):
+        lines = header
+        for line in lines:
+            k, v = line.split(': ', 1)
+            self.headers[k] = v
+        # 清空 cookies
+        self.cookies = {}
+        self.add_cookies()
 
     def form(self):
         body = urllib.parse.unquote(self.body)
@@ -54,8 +75,8 @@ def parsed_path(path):
         return path, query
 
 
-def response_for_path(path,request):
-    path, query = parsed_path(path)
+def response_for_path(request):
+    path, query = parsed_path(request.path)
     request.path = path
     request.query = query
     log('path 和 query', path, query)
@@ -65,9 +86,6 @@ def response_for_path(path,request):
     """
     r = {
         '/static': route_static,
-        # '/': route_index,
-        # '/login': route_login,
-        # '/messages': route_message,
     }
     r.update(route_dict)
     response = r.get(path, error)
@@ -87,6 +105,7 @@ def run(host='', port=3000):
         s.listen()
         while True:
             connection, address = s.accept()
+            log('ip {}'.format(address))
             _thread.start_new_thread(process_request,(address,connection))
 
 
@@ -94,24 +113,20 @@ def process_request(address,connection):
     r = connection.recv(1024)
     r = r.decode()
     log('ip 和 request, {}\n{}'.format(address, r))
-    # 因为 chrome 会发送空请求导致 split 得到空 list
-    # 所以这里判断一下防止程序崩溃
-    if len(r) > 0:
-        # 只能 split 一次，因为 body 中可能有换行
-        # 把 body 放入 request 中
-        request = Request()
-        header, request.body = r.split('\r\n\r\n', 1)
-        h = header.split('\r\n')
-        parts = h[0].split()
-        path = parts[1]
-        # 设置 request 的 method
-        request.method = parts[0]
-        # 用 response_for_path 函数来得到 path 对应的响应内容
-        response = response_for_path(path, request)
-        # 把响应发送给客户端
-        connection.sendall(response)
-    else:
-        log('接收到了一个空请求')
+
+    request = Request()
+    request.raw_data = r
+    header, request.body = r.split('\r\n\r\n', 1)
+    h = header.split('\r\n')
+    parts = h[0].split()
+    request.path = parts[1]
+    # 设置 request 的 method
+    request.method = parts[0]
+    # 用 response_for_path 函数来得到 path 对应的响应内容
+    request.add_headers(h[1:])
+    response = response_for_path(request)
+    # 把响应发送给客户端
+    connection.sendall(response)
 
     # 处理完请求, 关闭连接
     connection.close()
