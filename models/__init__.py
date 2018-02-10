@@ -29,7 +29,6 @@ def load(path):
         return json.loads(s)
 
 
-# Model 是用于存储数据的基类
 class Model(object):
 
     @classmethod
@@ -85,27 +84,24 @@ class Model(object):
         #     path = self.db_path()
         #     save(l, path)
 
+    @classmethod
+    def find_by(cls, **kwargs):
+        """
+        用法如下，kwargs 是只有一个元素的 dict
+        u = User.find_by(username='gua')
+        """
+        log('kwargs, ', kwargs)
+        k, v = '', ''
+        for key, value in kwargs.items():
+            k, v = key, value
+        all = cls.all()
+        for m in all:
+            if v == getattr(m, k):
+                return m
+        return None
+
     def __repr__(self):
         classname = self.__class__.__name__
         properties = ['{}: ({})'.format(k, v) for k, v in self.__dict__.items()]
         s = '\n'.join(properties)
         return '< {}\n{} >\n'.format(classname, s)
-
-
-class User(Model):
-    def __init__(self, form):
-        self.username = form.get('username', '')
-        self.password = form.get('password', '')
-
-    def validate_login(self):
-        return self.username == 'blink' and self.password == '123'
-
-    def validate_register(self):
-        return len(self.username) > 2 and len(self.password) > 2
-
-
-# 定义一个 class 用于保存 message
-class Message(Model):
-    def __init__(self, form):
-        self.author = form.get('author', '')
-        self.message = form.get('message', '')
