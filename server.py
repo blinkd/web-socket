@@ -3,7 +3,7 @@ import urllib.parse
 
 from utils import log
 
-from routes import route_static
+from routes import route_static, error
 from routes import route_dict
 
 import _thread
@@ -49,16 +49,6 @@ class Request(object):
             f[k] = v
         log('form() 字典', f)
         return f
-
-
-def error(code=404):
-    """
-    根据 code 返回不同的错误响应
-    """
-    e = {
-        404: b'HTTP/1.1 404 NOT FOUND\r\n\r\n<h1>NOT FOUND</h1>',
-    }
-    return e.get(code, b'')
 
 
 def parsed_path(path):
