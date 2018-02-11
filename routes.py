@@ -23,7 +23,7 @@ def current_user(request):
     # username = request.cookies.get('username', '【游客】')
     # session版本
 
-    session_id = request.cookies.get('user', None)
+    session_id = request.cookies.get('session_id', None)
     s = Session.find_by(session_id=session_id)
     if s is not None:
         return s.username
