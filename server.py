@@ -5,20 +5,30 @@ from utils import log
 
 from routes import route_static, error
 from routes import route_dict
+from routes_todo import route_dict as routes_todo
 
 import _thread
 
 
 # 定义一个 class 用于保存请求的数据
 class Request(object):
-    def __init__(self):
-        self.method = 'GET'
+    def __init__(self, raw_data):
+        header, self.body = raw_data.split('\r\n\r\n', 1)
+        h = header.split('\r\n')
+
+        parts = h[0].split()
+        self.method = parts[0]
+        path = parts[1]
         self.path = ''
         self.query = {}
-        self.body = ''
+        self.parsed_path(path)
+        log('Request: path 和 query', self.path, self.query)
+
         self.headers = {}
         self.cookies = {}
-        self.raw_data = ''
+        self.add_headers(h[1:])
+        self.add_cookies()
+        log('Request: headers 和 cookies', self.headers, self.cookies)
 
     def add_cookies(self):
         cookies = self.headers.get('Cookie', '')
@@ -34,9 +44,6 @@ class Request(object):
         for line in lines:
             k, v = line.split(': ', 1)
             self.headers[k] = v
-        # 清空 cookies
-        self.cookies = {}
-        self.add_cookies()
 
     def form(self):
         body = urllib.parse.unquote(self.body)
@@ -50,35 +57,31 @@ class Request(object):
         log('form() 字典', f)
         return f
 
-
-def parsed_path(path):
-    index = path.find('?')
-    if index == -1:
-        return path, {}
-    else:
-        path, query_string = path.split('?', 1)
-        args = query_string.split('&')
-        query = {}
-        for arg in args:
-            k, v = arg.split('=')
-            query[k] = v
-        return path, query
+    def parsed_path(self, path):
+        index = path.find('?')
+        if index == -1:
+            self.path = path
+            self.query = {}
+        else:
+            path, query_string = path.split('?', 1)
+            args = query_string.split('&')
+            query = {}
+            for arg in args:
+                k, v = arg.split('=')
+                query[k] = v
+            self.path = path
+            self.query = query
 
 
 def response_for_path(request):
-    path, query = parsed_path(request.path)
-    request.path = path
-    request.query = query
-    log('path 和 query', path, query)
     """
     根据 path 调用相应的处理函数
     没有处理的 path 会返回 404
     """
-    r = {
-        '/static': route_static,
-    }
+    r = {}
     r.update(route_dict)
-    response = r.get(path, error)
+    r.update(routes_todo())
+    response = r.get(request.path, error)
     return response(request)
 
 
@@ -103,18 +106,19 @@ def process_request(address,connection):
     r = connection.recv(1024)
     r = r.decode()
     log('ip 和 request, {}\n{}'.format(address, r))
-
-    request = Request()
-    request.raw_data = r
-    header, request.body = r.split('\r\n\r\n', 1)
-    h = header.split('\r\n')
-    parts = h[0].split()
-    request.path = parts[1]
-    # 设置 request 的 method
-    request.method = parts[0]
-    # 用 response_for_path 函数来得到 path 对应的响应内容
-    request.add_headers(h[1:])
+    log('request log:\n'.format(r))
+    request = Request(r)
+    # request.raw_data = r
+    # header, request.body = r.split('\r\n\r\n', 1)
+    # h = header.split('\r\n')
+    # parts = h[0].split()
+    # request.path = parts[1]
+    # # 设置 request 的 method
+    # request.method = parts[0]
+    # # 用 response_for_path 函数来得到 path 对应的响应内容
+    # request.add_headers(h[1:])
     response = response_for_path(request)
+    log("response log:\n", response)
     # 把响应发送给客户端
     connection.sendall(response)
 
