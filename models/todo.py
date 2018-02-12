@@ -8,3 +8,10 @@ class Todo(Model):
     def __init__(self, form):
         super().__init__(form)
         self.title = form.get('title', '')
+
+    @classmethod
+    def update(cls, form):
+        todo_id = int(form['id'])
+        t = Todo.find_by(id = todo_id)
+        t.title = form['title']
+        t.save()

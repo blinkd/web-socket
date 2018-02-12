@@ -45,6 +45,18 @@ class Model(object):
         return m
 
     @classmethod
+    def delete(cls, id):
+        ms = cls.all()
+        for i,m in enumerate(ms):
+            if m.id == id:
+                del ms[i]
+                break
+
+        l = [m.__dict__ for m in ms]
+        path = cls.db_path()
+        save(l, path)
+
+    @classmethod
     def all(cls):
         """
         得到一个类的所有存储的实例
