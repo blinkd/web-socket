@@ -30,6 +30,8 @@ def load(path):
 
 
 class Model(object):
+    def __init__(self, form):
+        self.id = form.get('id', None)
 
     @classmethod
     def db_path(cls):
@@ -58,31 +60,26 @@ class Model(object):
         """
         models = self.all()
         log('models', models)
-        models.append(self)
+
+        first_index = 0
+        if self.id is None:
+            log('id is None')
+            if len(models) > 0:
+                self.id = models[-1].id + 1
+            else:
+                log('first index', first_index)
+                self.id = first_index
+
+            models.append(self)
+        else:
+            log('id is not None')
+            for i, m in enumerate(models):
+                if m.id == self.id:
+                    models[i] = self
+
         l = [m.__dict__ for m in models]
         path = self.db_path()
         save(l, path)
-        # models = self.all()
-        # log('models', models)
-        # u = self.find_by(username=self.username)
-        # if u != None:
-        #     self.id = u.id
-        #     l = []
-        #     for m in models:
-        #         if m.username == self.username:
-        #             l.append(self.__dict__)
-        #         else:
-        #             l.append(m.__dict__)
-        #     path = self.db_path()
-        #     log('path', path)
-        #     save(l, path)
-        # else:
-        #     self.id = len(models) + 1
-        #     models.append(self)
-        #     # __dict__ 是包含了对象所有属性和值的字典
-        #     l = [m.__dict__ for m in models]
-        #     path = self.db_path()
-        #     save(l, path)
 
     @classmethod
     def find_by(cls, **kwargs):
@@ -91,12 +88,15 @@ class Model(object):
         u = User.find_by(username='gua')
         """
         log('kwargs, ', kwargs)
-        k, v = '', ''
-        for key, value in kwargs.items():
-            k, v = key, value
-        all = cls.all()
-        for m in all:
-            if v == getattr(m, k):
+        for m in cls.all():
+            exist = False
+            for key, value in kwargs.items():
+                k, v = key, value
+                if v == getattr(m, k):
+                    exist = True
+                else:
+                    exist = False
+            if exist:
                 return m
         return None
 
