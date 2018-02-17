@@ -136,6 +136,33 @@ def route_register(request):
     return r.encode(encoding='utf-8')
 
 
+def route_profile(request):
+    headers = {
+        'Content-Type': 'text/html',
+    }
+    session_id = request.cookies.get('session_id', None)
+    s = Session.find_by(session_id=session_id)
+    if s is None:
+        header = 'HTTP/1.x 302 Moved Temporarily\r\nLocation:http://127.0.0.1:3000/login\r\n'
+        header += ''.join([
+            '{}: {}\r\n'.format(k, v) for k, v in headers.items()
+        ])
+        body = ''
+        r = '{}\r\n{}'.format(header, body)
+        log('login 的响应', r)
+        return r.encode()
+    else:
+        s = User.find_by(username=s.username)
+        body = template('profile.html')
+        body = body.replace('{{id}}', str(s.id))
+        body = body.replace('{{username}}', s.username)
+        body = body.replace('{{note}}', s.note)
+        header = response_with_headers(headers)
+        r = '{}\r\n{}'.format(header, body)
+        log('login 的响应', r)
+        return r.encode()
+
+
 def route_message(request):
     """
     主页的处理函数, 返回主页的响应
@@ -204,6 +231,7 @@ route_dict = {
     '/messages': route_message,
     '/messages/add': route_message_add,
     '/static': route_static,
+    '/profile': route_profile,
 }
 
 
