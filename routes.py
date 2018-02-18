@@ -34,22 +34,21 @@ def redirect(url):
 
 
 def current_user(request):
-    # cookie 版本
-    # username = request.cookies.get('username', '【游客】')
-    # session版本
-    guest = '【游客】'
-    session_id = request.cookies.get('session_id', None)
+    session_id = request.cookies.get('session_id')
     if session_id is not None:
         s = Session.find_by(session_id=session_id)
         if s is not None:
-            if not s.expire():
-                return s.username
+            if not s.expired():
+                user_id = s.user_id
+                log('current user id <{}>'.format(user_id))
+                u = User.find_by(id=user_id)
+                return u
             else:
-                return guest
+                return User.guest()
         else:
-            return guest
+            return User.guest()
     else:
-        return guest
+        return User.guest()
 
 
 def template(name):
@@ -64,8 +63,8 @@ def route_index(request):
     """
     header = 'HTTP/1.1 210 VERY OK\r\nContent-Type: text/html\r\n'
     body = template('index.html')
-    username = current_user(request)
-    body = body.replace('{{username}}', username)
+    u = current_user(request)
+    body = body.replace('{{username}}', u.username)
     r = header + '\r\n' + body
     return r.encode()
 
@@ -87,28 +86,31 @@ def route_login(request):
         'Content-Type': 'text/html',
     }
     # header = 'HTTP/1.1 210 VERY OK\r\nContent-Type: text/html\r\n'
-    username = current_user(request)
     if request.method == 'POST':
         form = request.form()
-        # username = form.get('username')
-        # password = form.get('password')
-        u = User.new(form)
-        if u.validate_login():
+        username = form.get('username')
+        password = form.get('password')
+        if User.validate_login(username, password):
+            u = User.find_by(username=username)
             # 设置随机字符串当令牌使用
             # headers['Set-Cookie'] = 'user={}'.format(u.username)
             session_id = random_string()
-            headers['Set-Cookie'] = 'session_id={}'.format(session_id)
-            # session[session_id] = u.username
-            s = Session.new(dict(
+            form = dict(
                 session_id=session_id,
-                username=u.username
-            ))
+                user_id=u.id,
+            )
+            s = Session.new(form)
             s.save()
+            headers['Set-Cookie'] = 'session_id={}'.format(
+                session_id
+            )
             result = '登录成功'
         else:
             result = '用户名或者密码错误'
+            username = User.guest().username
     else:
         result = ''
+        username = User.guest().username
     body = template('login.html')
     body = body.replace('{{result}}', result)
     body = body.replace('{{username}}', username)
@@ -168,9 +170,9 @@ def route_message(request):
     主页的处理函数, 返回主页的响应
     """
     log('本次请求的 method', request.method)
-    username = current_user(request)
-    log('username', username)
-    if username == '[游客]':
+    u = current_user(request)
+    log('username', u.username)
+    if u.username == '【游客】':
         return error()
     else:
         form = request.query

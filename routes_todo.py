@@ -1,4 +1,5 @@
 from models.todo import Todo
+from routes import current_user
 from routes import (
     redirect,
     template,
@@ -10,8 +11,8 @@ def index(request):
     """
     todo 首页的路由函数
     """
-
-    todo_list = Todo.all()
+    u = current_user(request)
+    todo_list = Todo.find_all(user_id=u.id)
     # 下面这行生成一个 html 字符串
     todo_html = """
     <h3>
@@ -38,6 +39,7 @@ def index(request):
     r = header + '\r\n' + body
     return r.encode()
 
+
 def edit(request):
 
     body = template('todo_edit.html')
@@ -54,6 +56,7 @@ def edit(request):
     header = response_with_headers(headers)
     r = header + '\r\n' + body
     return r.encode()
+
 
 def delete(request):
     todo_id = int(request.query['id'])
@@ -73,13 +76,14 @@ def add(request):
     """
     用于增加新 todo 的路由函数
     """
+    u = current_user(request)
     form = request.form()
     t = Todo.new(form)
+    t.user_id = u.id
     t.save()
     # 浏览器发送数据过来被处理后, 重定向到首页
     # 浏览器在请求新首页的时候, 就能看到新增的数据了
     return redirect('/todo')
-
 
 
 def route_dict():

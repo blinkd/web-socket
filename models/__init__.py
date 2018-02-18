@@ -112,6 +112,26 @@ class Model(object):
                 return m
         return None
 
+    @classmethod
+    def find_all(cls, **kwargs):
+        """
+        用法如下，kwargs 是只有一个元素的 dict
+        u = User.find_all(username='gua')
+        """
+        log('kwargs, ', kwargs)
+        models = []
+        for m in cls.all():
+            exist = False
+            for key, value in kwargs.items():
+                k, v = key, value
+                if v == getattr(m, k):
+                    exist = True
+                else:
+                    exist = False
+            if exist:
+                models.append(m)
+        return models
+
     def __repr__(self):
         classname = self.__class__.__name__
         properties = ['{}: ({})'.format(k, v) for k, v in self.__dict__.items()]
