@@ -8,7 +8,13 @@ from routes import (
     login_required,
 )
 
+import time
 from utils import log
+
+
+def formatted_time(t):
+    '''传入为时间戳，返回格式化时间'''
+    return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(t))
 
 
 def index(request):
@@ -23,11 +29,15 @@ def index(request):
         {} : {}
         <a href="/todo/edit?id={}">编辑</a>
         <a href="/todo/delete?id={}">删除</a>
+        <div>创建时间={}</div>
+        <div>更新时间={}</div>
     </h3>
     """
     todo_html = ''.join([
         todo_html.format(
-            t.id, t.title, t.id, t.id
+            t.id, t.title, t.id, t.id,
+            formatted_time(t.create_time),
+            formatted_time(t.updated_time),
         ) for t in todo_list
     ])
 
@@ -85,6 +95,7 @@ def add(request):
     form = request.form()
     t = Todo.new(form)
     t.user_id = u.id
+    t.updated_time = int(time.time())
     t.save()
     # 浏览器发送数据过来被处理后, 重定向到首页
     # 浏览器在请求新首页的时候, 就能看到新增的数据了
@@ -117,7 +128,6 @@ def same_user_required(route_function):
             else:
                 return redirect('/login')
     return f
-
 
 
 def route_dict():
