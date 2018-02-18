@@ -91,17 +91,33 @@ def add(request):
     return redirect('/todo')
 
 
-def current_user_required(route_function):
+def same_user_required(route_function):
+    '''
+    edit与update函数分别对应http协议get请求与post请求
+    所以权限函数先判断request.method
+    然后根据对应的请求格式取得todo_id
+    然后判断继续或是重定向
+    '''
     def f(request):
-        todo_id = int(request.query['id'])
-        t = Todo.find_by(id=todo_id)
-        u = current_user(request)
-        if u.id == t.user_id:
-            return route_function(request)
+        if request.method == 'GET':
+            todo_id = int(request.query['id'])
+            t = Todo.find_by(id=todo_id)
+            u = current_user(request)
+            if u.id == t.user_id:
+                return route_function(request)
+            else:
+                return redirect('/todo')
         else:
-            log('非当前用户 redirect')
-            return error()
+            form = request.form()
+            todo_id = int(form['id'])
+            t = Todo.find_by(id=todo_id)
+            u = current_user(request)
+            if u.id == t.user_id:
+                return route_function(request)
+            else:
+                return redirect('/login')
     return f
+
 
 
 def route_dict():
@@ -113,8 +129,8 @@ def route_dict():
     d = {
         '/todo': login_required(index),
         '/todo/add': login_required(add),
-        '/todo/edit': login_required(current_user_required(edit)),
-        '/todo/update': login_required(update),
-        '/todo/delete': login_required(delete),
+        '/todo/edit': login_required(same_user_required(edit)),
+        '/todo/update': login_required(same_user_required(update)),
+        '/todo/delete': login_required(same_user_required(delete)),
     }
     return d
