@@ -20,3 +20,10 @@ class Todo(Model):
         t.title = form['title']
         t.updated_time = int(time.time())
         t.save()
+
+    @classmethod
+    def add(cls, form, user_id):
+        t = Todo.new(form)
+        t.user_id = user_id
+        t.updated_time = int(time.time())
+        t.save()

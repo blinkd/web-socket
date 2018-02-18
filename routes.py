@@ -51,7 +51,7 @@ def current_user(request):
         return User.guest()
 
 
-def template(name):
+def route_template(name):
     path = 'templates/' + name
     with open(path, 'r', encoding='utf-8') as f:
         return f.read()
@@ -75,7 +75,7 @@ def route_index(request):
     主页的处理函数, 返回主页的响应
     """
     header = 'HTTP/1.1 210 VERY OK\r\nContent-Type: text/html\r\n'
-    body = template('index.html')
+    body = route_template('index.html')
     u = current_user(request)
     body = body.replace('{{username}}', u.username)
     r = header + '\r\n' + body
@@ -125,7 +125,7 @@ def route_login(request):
         result = ''
         u = current_user(request)
         username = u.username
-    body = template('login.html')
+    body = route_template('login.html')
     body = body.replace('{{result}}', result)
     body = body.replace('{{username}}', username)
     header = response_with_headers(headers)
@@ -146,7 +146,7 @@ def route_register(request):
             result = '用户名或者密码长度必须大于2'
     else:
         result = ''
-    body = template('register.html')
+    body = route_template('register.html')
     body = body.replace('{{result}}', result)
     r = header + '\r\n' + body
     return r.encode(encoding='utf-8')
@@ -169,7 +169,7 @@ def route_profile(request):
         return r.encode()
     else:
         s = User.find_by(username=s.username)
-        body = template('profile.html')
+        body = route_template('profile.html')
         body = body.replace('{{id}}', str(s.id))
         body = body.replace('{{username}}', s.username)
         body = body.replace('{{note}}', s.note)
@@ -196,7 +196,7 @@ def route_message(request):
             m.save()
 
         header = 'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n'
-        body = template('messages.html')
+        body = route_template('messages.html')
         ms = '<br>'.join([str(m) for m in Message.all()])
         body = body.replace('{{messages}}', ms)
         r = header + '\r\n' + body
@@ -220,7 +220,7 @@ def route_message_add(request):
     m.save()
 
     header = 'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n'
-    body = template('messages.html')
+    body = route_template('messages.html')
     ms = '<br>'.join([str(m) for m in Message.all()])
 
     body = body.replace('{{messages}}', ms)
