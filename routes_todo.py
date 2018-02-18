@@ -4,7 +4,11 @@ from routes import (
     redirect,
     template,
     response_with_headers,
+    error,
+    login_required,
 )
+
+from utils import log
 
 
 def index(request):
@@ -46,6 +50,7 @@ def edit(request):
 
     todo_id = int(request.query['id'])
     t = Todo.find_by(id=todo_id)
+    u = current_user(request)
     todo_title = t.title
     body = body.replace('{{todo_id}}', str(todo_id))
     body = body.replace('{{todo_title}}', todo_title)
@@ -86,6 +91,19 @@ def add(request):
     return redirect('/todo')
 
 
+def current_user_required(route_function):
+    def f(request):
+        todo_id = int(request.query['id'])
+        t = Todo.find_by(id=todo_id)
+        u = current_user(request)
+        if u.id == t.user_id:
+            return route_function(request)
+        else:
+            log('非当前用户 redirect')
+            return error()
+    return f
+
+
 def route_dict():
     """
     路由字典
@@ -93,10 +111,10 @@ def route_dict():
     value 是路由处理函数(就是响应)
     """
     d = {
-        '/todo': index,
-        '/todo/add': add,
-        '/todo/edit': edit,
-        '/todo/update': update,
-        '/todo/delete': delete,
+        '/todo': login_required(index),
+        '/todo/add': login_required(add),
+        '/todo/edit': login_required(current_user_required(edit)),
+        '/todo/update': login_required(update),
+        '/todo/delete': login_required(delete),
     }
     return d

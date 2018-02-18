@@ -57,6 +57,19 @@ def template(name):
         return f.read()
 
 
+def login_required(route_function):
+    def f(request):
+        u = current_user(request)
+        if u.id == User.guest().id:
+            log('非注册用户 redirect')
+            return redirect('/login')
+        else:
+            return route_function(request)
+    return f
+
+
+
+
 def route_index(request):
     """
     主页的处理函数, 返回主页的响应
@@ -110,7 +123,8 @@ def route_login(request):
             username = User.guest().username
     else:
         result = ''
-        username = User.guest().username
+        u = current_user(request)
+        username = u.username
     body = template('login.html')
     body = body.replace('{{result}}', result)
     body = body.replace('{{username}}', username)
