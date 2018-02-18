@@ -29,7 +29,7 @@ def redirect(url):
     }
     # 增加 Location 字段并生成 HTTP 响应返回
     # 注意, 没有 HTTP body 部分
-    r = response_with_headers(headers, 302) + '\r\n'
+    r = formatted_with_headers(headers, 302) + '\r\n'
     return r.encode()
 
 
@@ -68,8 +68,6 @@ def login_required(route_function):
     return f
 
 
-
-
 def route_index(request):
     """
     主页的处理函数, 返回主页的响应
@@ -82,7 +80,7 @@ def route_index(request):
     return r.encode()
 
 
-def response_with_headers(headers, code=200):
+def formatted_with_headers(headers, code=200):
     """
     Content-Type: text/html
     Set-Cookie: user=gua
@@ -128,7 +126,7 @@ def route_login(request):
     body = route_template('login.html')
     body = body.replace('{{result}}', result)
     body = body.replace('{{username}}', username)
-    header = response_with_headers(headers)
+    header = formatted_with_headers(headers)
     r = '{}\r\n{}'.format(header, body)
     log('login 的响应', r)
     return r.encode()
@@ -173,7 +171,7 @@ def route_profile(request):
         body = body.replace('{{id}}', str(s.id))
         body = body.replace('{{username}}', s.username)
         body = body.replace('{{note}}', s.note)
-        header = response_with_headers(headers)
+        header = formatted_with_headers(headers)
         r = '{}\r\n{}'.format(header, body)
         log('login 的响应', r)
         return r.encode()
@@ -238,6 +236,16 @@ def route_static(request):
         header = b'HTTP/1.1 200 OK\r\nContent-Type: image/gif\r\n'
         r = header + b'\r\n' + f.read()
         return r
+
+
+def html_response(body,):
+    headers = {
+        'Content-Type': 'text/html',
+    }
+    header = formatted_with_headers(headers)
+    r = header + '\r\n' + body
+    return r.encode()
+
 
 
 route_dict = {
