@@ -1,21 +1,9 @@
-from utils import log
+from utils import (
+    log,
+    utils_template)
 from models.message import Message
 from models.user import User
 from models.session import Session
-
-import random
-
-
-def random_string():
-    """
-    生成一个随机的字符串
-    """
-    seed = 'abcdefjsad89234hdsfkljasdkjghigaksldf89weru'
-    s = ''
-    for i in range(16):
-        random_index = random.randint(0, len(seed) - 2)
-        s += seed[random_index]
-    return s
 
 
 def redirect(url):
@@ -90,64 +78,6 @@ def formatted_with_headers(headers, code=200):
         '{}: {}\r\n'.format(k, v) for k, v in headers.items()
     ])
     return header
-
-
-def route_login(request):
-    headers = {
-        'Content-Type': 'text/html',
-    }
-    # header = 'HTTP/1.1 210 VERY OK\r\nContent-Type: text/html\r\n'
-    if request.method == 'POST':
-        form = request.form()
-        username = form.get('username')
-        password = form.get('password')
-        if User.validate_login(username, password):
-            u = User.find_by(username=username)
-            # 设置随机字符串当令牌使用
-            # headers['Set-Cookie'] = 'user={}'.format(u.username)
-            session_id = random_string()
-            form = dict(
-                session_id=session_id,
-                user_id=u.id,
-            )
-            s = Session.new(form)
-            s.save()
-            headers['Set-Cookie'] = 'session_id={}'.format(
-                session_id
-            )
-            result = '登录成功'
-        else:
-            result = '用户名或者密码错误'
-            username = User.guest().username
-    else:
-        result = ''
-        u = current_user(request)
-        username = u.username
-    body = route_template('login.html')
-    body = body.replace('{{result}}', result)
-    body = body.replace('{{username}}', username)
-    header = formatted_with_headers(headers)
-    r = '{}\r\n{}'.format(header, body)
-    log('login 的响应', r)
-    return r.encode()
-
-
-def route_register(request):
-    header = 'HTTP/1.1 210 VERY OK\r\nContent-Type: text/html\r\n'
-    if request.method == 'POST':
-        form = request.form()
-        u = User.new(form)
-        if u.validate_register():
-            u.save()
-            result = '注册成功<br> <pre>{}</pre>'.format(User.all())
-        else:
-            result = '用户名或者密码长度必须大于2'
-    else:
-        result = ''
-    body = route_template('register.html')
-    body = body.replace('{{result}}', result)
-    r = header + '\r\n' + body
-    return r.encode(encoding='utf-8')
 
 
 def route_profile(request):
@@ -238,14 +168,53 @@ def route_static(request):
         return r
 
 
-def html_response(body,):
-    headers = {
+def html_response(body, headers=None):
+    h = {
         'Content-Type': 'text/html',
     }
+    if headers is None:
+        headers = h
+    else:
+        headers.update(h)
     header = formatted_with_headers(headers)
     r = header + '\r\n' + body
     return r.encode()
 
+
+def route_login(request):
+    headers = {
+        'Content-Type': 'text/html',
+    }
+    # header = 'HTTP/1.1 210 VERY OK\r\nContent-Type: text/html\r\n'
+    if request.method == 'POST':
+        form = request.form()
+        u, message = User.login(form, headers)
+    else:
+        message = ''
+        u = current_user(request)
+
+    body = utils_template('login.html', username=u.username, message=message)
+    return html_response(body, headers)
+    # body = body.replace('{{result}}', message)
+    # body = body.replace('{{username}}', u.username)
+
+
+def route_register(request):
+    header = 'HTTP/1.1 210 VERY OK\r\nContent-Type: text/html\r\n'
+    if request.method == 'POST':
+        form = request.form()
+        u = User.new(form)
+        if u.validate_register():
+            u.save()
+            result = '注册成功<br> <pre>{}</pre>'.format(User.all())
+        else:
+            result = '用户名或者密码长度必须大于2'
+    else:
+        result = ''
+    body = route_template('register.html')
+    body = body.replace('{{result}}', result)
+    r = header + '\r\n' + body
+    return r.encode(encoding='utf-8')
 
 
 route_dict = {

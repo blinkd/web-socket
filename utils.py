@@ -1,3 +1,5 @@
+import random
+
 from jinja2 import Environment, FileSystemLoader
 import os.path
 import time
@@ -30,3 +32,15 @@ class JinjaEnvironment:
 def utils_template(path, **kwargs):
     t = JinjaEnvironment.env.get_template(path)
     return t.render(**kwargs)
+
+
+def random_string():
+    """
+    生成一个随机的字符串
+    """
+    seed = 'abcdefjsad89234hdsfkljasdkjghigaksldf89weru'
+    s = ''
+    for i in range(16):
+        random_index = random.randint(0, len(seed) - 2)
+        s += seed[random_index]
+    return s
