@@ -44,3 +44,9 @@ def random_string():
         random_index = random.randint(0, len(seed) - 2)
         s += seed[random_index]
     return s
+
+
+def formatted_time(unixtime):
+    dt = time.localtime(unixtime)
+    ds = time.strftime('%Y-%m-%d %H:%M:%S', dt)
+    return ds
