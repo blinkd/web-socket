@@ -95,10 +95,6 @@ class Model(object):
 
     @classmethod
     def find_by(cls, **kwargs):
-        """
-        用法如下，kwargs 是只有一个元素的 dict
-        u = User.find_by(username='gua')
-        """
         log('kwargs, ', kwargs)
         for m in cls.all():
             exist = False
@@ -114,10 +110,6 @@ class Model(object):
 
     @classmethod
     def find_all(cls, **kwargs):
-        """
-        用法如下，kwargs 是只有一个元素的 dict
-        u = User.find_all(username='gua')
-        """
         log('kwargs, ', kwargs)
         models = []
         for m in cls.all():

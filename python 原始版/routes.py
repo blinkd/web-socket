@@ -69,10 +69,6 @@ def route_index(request):
 
 
 def formatted_with_headers(headers, code=200):
-    """
-    Content-Type: text/html
-    Set-Cookie: user=gua
-    """
     header = 'HTTP/1.x {} blink\r\n'.format(code)
     header += ''.join([
         '{}: {}\r\n'.format(k, v) for k, v in headers.items()
@@ -132,14 +128,6 @@ def route_message(request):
 
 
 def route_message_add(request):
-    """
-    主页的处理函数, 返回主页的响应
-    POST /messages HTTP/1.1
-    Host: localhost:3000
-    Content-Type: application/x-www-form-urlencoded
-
-    message=123&author=gua
-    """
     log('本次请求的 method', request.method)
     form = request.form()
     m = Message.new(form)
