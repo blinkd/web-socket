@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>修改 TODO 程序</title>
+</head>
+<body>
+    <h1>TODO</h1>
+    <form action="/todo/update" method="post">
+        <input hidden="hidden" name="id" placeholder="id" value="{{ todo.id }}">
+        <br>
+        <input name="task" placeholder="task" value="{{ todo.task }}">
+        <br>
+        <button>提交修改</button>
+    </form>
+</body>
+</html>
