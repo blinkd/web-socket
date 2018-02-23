@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Message</title>
+    </head>
+    <body>
+        测        试普通版
+        <h1>测试 h1 版</h1>
+        <h2>测试 h2 版</h2>
+        <h3>测试 h3 版</h3>
+        <form action="/messages" method="post">
+            <input name="message">
+            <br>
+            <input name="author">
+            <button type="submit">POST 提交</button>
+        </form>
+        <form action="/messages" method="get">
+            <input name="message">
+            <button type="submit">GET 提交</button>
+        </form>
+        <div>
+            {{message}}
+        </div>
+    </body>
+</html>
