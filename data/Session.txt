@@ -1,8 +1,0 @@
-[
-  {
-    "id": 0,
-    "session_id": "dj8glsljs4dsdsg9",
-    "user_id": 0,
-    "expired_time": 1519006113.9601128
-  }
-]
