@@ -26,14 +26,6 @@ class Request(object):
         log('Request: headers 和 cookies', self.headers, self.cookies)
 
     def add_cookies(self):
-        """r
-        Cookie:user=gua;login_time=xx;
-        =>
-        {
-        'user':'gua',
-        'login_time':'xx',
-        }
-        """
         cookies = self.headers.get('Cookie', '')
         kvs = cookies.split('; ')
         log('cookie', kvs)
@@ -43,9 +35,6 @@ class Request(object):
                 self.cookies[k] = v
 
     def add_headers(self, header):
-        """
-        Accept-Language: zh-CN,zh;q=0.8
-        """
         lines = header
         for line in lines:
             k, v = line.split(': ', 1)
@@ -61,14 +50,6 @@ class Request(object):
         return f
 
     def parse_path(self, path):
-        """
-        输入: /gua?message=hello&author=gua
-        返回
-        (gua, {
-            'message': 'hello',
-            'author': 'gua',
-        })
-        """
         index = path.find('?')
         if index == -1:
             self.path = path
